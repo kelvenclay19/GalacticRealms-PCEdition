@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galactic Realms - PC Edition</title>
+    <style>
+        :root {
+            --primary: #5f8ad0;
+            --primary-glow: #7aaaff;
+            --bg-dark: rgba(10, 15, 30, 0.85);
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-retro: 'Courier New', Courier, monospace;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: var(--font-main);
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #0a0c1a;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        button {
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: var(--bg-dark);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            color: #c6e2ff;
+            font-weight: 600;
+            font-size: 1rem;
+            z-index: 10;
+        }
+        .hud-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            transition: 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-btn:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+        }
+        .icon-btn:active {
+            transform: translateY(0) scale(0.95);
+        }
+        #level-message {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 24px;
+            border-radius: 20px;
+            border: 1px solid var(--primary);
+            color: #fff;
+            text-align: center;
+        }
+
+        #boss-hud {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 5;
+            color: white;
+        }
+        #player-hp-display {
+            font-size: 2rem;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
+        }
+        #boss-puzzle-ui {
+            width: 50%;
+            text-align: center;
+        }
+        #boss-puzzle-name {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: #aaccff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #boss-puzzle-bar-bg {
+            width: 100%;
+            height: 18px;
+            background: rgba(100, 255, 100, 0.1);
+            border: 2px solid #55ff55;
+            border-radius: 9px;
+            overflow: hidden;
+        }
+        #boss-puzzle-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00aa00, #55ff55);
+            transition: width 0.3s ease;
+        }
+
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .menu-title {
+            font-size: 4.5rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #fff, var(--primary-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 10px 30px rgba(122, 170, 255, 0.4);
+            text-align: center;
+        }
+        .menu-sub {
+            font-size: 1.2rem;
+            color: #aaccff;
+            margin-bottom: 40px;
+            font-weight: 300;
+            text-align: center;
+        }
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+        .menu-btn {
+            padding: 18px 40px;
+            font-size: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--primary-glow);
+            border-radius: 16px;
+            color: white;
+            font-weight: bold;
+            width: 300px;
+            text-align: center;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: 0.2s;
+        }
+        .menu-btn.locked {
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+        }
+        .menu-btn.maker-btn {
+            border-color: #ff8c42;
+            color: #ff8c42;
+        }
+        .menu-btn.maker-btn:hover:not(.locked) {
+            background: #ff8c42;
+            color: #000;
+        }
+
+        #lobby-settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            border: none;
+            font-size: 1.8rem;
+        }
+
+        .menu-btn:hover:not(.locked) {
+            background: var(--primary-glow);
+            color: #000;
+            transform: translateY(-3px);
+        }
+        .menu-btn:active:not(.locked) {
+            transform: scale(0.95);
+            background: var(--primary-glow);
+            color: #000;
+        }
+
+        .settings-panel {
+            background: var(--bg-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 450px;
+            color: white;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .settings-panel h2 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+            color: var(--primary-glow);
+            text-align: center;
+        }
+        .setting-group {
+            margin-bottom: 25px;
+        }
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            color: #b7e0ff;
+        }
+        .setting-group select,
+        .setting-group input[type="range"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1rem;
+        }
+        .setting-group input[type="range"] {
+            accent-color: var(--primary-glow);
+        }
+
+        #credits-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.98);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2rem;
+            line-height: 3.5rem;
+            text-align: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 2s, visibility 2s;
+        }
+        #credits-overlay.show {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .credits-text {
+            animation: scrollCredits 25s linear forwards;
+        }
+        .credits-text h1 {
+            color: var(--primary-glow);
+            margin-bottom: 2rem;
+            font-size: 3rem;
+        }
+        @keyframes scrollCredits {
+            0% {
+                transform: translateY(100vh);
+            }
+            100% {
+                transform: translateY(-160vh);
+            }
+        }
+
+        /* ========== GALACTIC MAKER STYLES ========== */
+        #maker-toolbar {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            background: rgba(17, 20, 36, 0.95);
+            border: 1px solid #2a3454;
+            border-radius: 16px;
+            padding: 10px 16px;
+            gap: 14px;
+            align-items: center;
+            z-index: 9;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+            flex-wrap: wrap;
+        }
+        #maker-toolbar .tool-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: #0a0c16;
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid #2a3454;
+        }
+        #maker-toolbar .btn {
+            background: #2a3454;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        #maker-toolbar .btn:hover {
+            background: #3e4c7a;
+            transform: translateY(-2px);
+        }
+        #maker-toolbar .btn:active {
+            transform: translateY(0) scale(0.95);
+        }
+        #btn-maker-play {
+            background: #ffaa00;
+            color: #000;
+        }
+        #btn-maker-play.playing {
+            background: #ff4444;
+            color: white;
+        }
+        #maker-toolbar .tool-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background: #1a1e36;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        #maker-toolbar .tool-btn:hover {
+            background: #2a3454;
+        }
+        #maker-toolbar .tool-btn.active {
+            border-color: #55ff55;
+            background: #1f3a28;
+            box-shadow: 0 0 10px rgba(85, 255, 85, 0.3);
+        }
+        #maker-toolbar select {
+            background: #1a1e36;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #2a3454;
+            outline: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        /* Ícones CSS para ferramentas */
+        .icon-block {
+            width: 20px;
+            height: 20px;
+            background: #4a5c8c;
+            border-top: 5px solid #7aaaff;
+            border-radius: 2px;
+        }
+        .icon-spawn {
+            width: 14px;
+            height: 18px;
+            background: #f5cb8b;
+            position: relative;
+            border-radius: 2px;
+        }
+        .icon-spawn::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 10px;
+            height: 5px;
+            background: #b5d8ff;
+        }
+        .icon-goal {
+            width: 3px;
+            height: 20px;
+            background: #ccc;
+            position: relative;
+        }
+        .icon-goal::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 12px solid #ffaa00;
+        }
+        .icon-enemy-mk {
+            width: 18px;
+            height: 18px;
+            background: #ff3333;
+            border-radius: 4px;
+            position: relative;
+        }
+        .icon-enemy-mk::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 3px;
+            height: 3px;
+            background: white;
+            box-shadow: 7px 0 0 white;
+        }
+        .icon-pad {
+            width: 20px;
+            height: 7px;
+            background: #ff00ff;
+            border-radius: 3px;
+            margin-top: 12px;
+        }
+        .icon-spike {
+            width: 0;
+            height: 0;
+            border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
+            border-bottom: 16px solid #ddd;
+            margin-top: 3px;
+        }
+        .icon-eraser {
+            width: 20px;
+            height: 20px;
+            border: 2px dashed #ff5555;
+            background: rgba(255, 85, 85, 0.2);
+            border-radius: 4px;
+        }
+        #maker-status-msg {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 12px 30px;
+            border-radius: 20px;
+            border: 1px solid #55ff55;
+            color: #55ff55;
+            font-weight: bold;
+            font-size: 1.2rem;
+            display: none;
+            pointer-events: none;
+            z-index: 20;
+        }
+        #maker-camera-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+        #maker-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+        }
+        .maker-modal-box {
+            background: var(--bg-dark);
+            border: 2px solid #2a3454;
+            padding: 30px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            transform: scale(0.8);
+            opacity: 0;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .maker-modal-box.show {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .maker-modal-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        .maker-modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--primary-glow);
+        }
+        .maker-modal-text {
+            color: #c6e2ff;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .maker-modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .maker-modal-btn {
+            padding: 12px 25px;
+            border-radius: 12px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1rem;
+        }
+        .maker-modal-btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .maker-modal-btn-danger {
+            background: #ff4444;
+            color: white;
+        }
+        .maker-modal-btn-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .maker-modal-btn:hover {
+            filter: brightness(1.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-overlay">
+            <span id="level-message">Galactic Lobby</span>
+            <div class="hud-controls">
+                <button class="icon-btn" id="btn-fullscreen" title="Tela Cheia">⛶</button>
+                <button class="icon-btn" id="btn-settings" title="Configurações">⚙️</button>
+                <button class="icon-btn" id="reset-button" title="Reiniciar">↻</button>
+                <button class="icon-btn" id="btn-maker-lobby" title="Voltar ao Lobby" style="display:none;">🏠</button>
+            </div>
+        </div>
+
+        <!-- MAKER TOOLBAR -->
+        <div id="maker-toolbar">
+            <button class="btn" id="btn-maker-play">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                <span id="maker-play-text">JOGAR</span>
+            </button>
+            <div class="tool-group" id="maker-palette">
+                <button class="tool-btn active" data-tool="1" title="Bloco Sólido"><div class="icon-block"></div></button>
+                <button class="tool-btn" data-tool="2" title="Spawn Player"><div class="icon-spawn"></div></button>
+                <button class="tool-btn" data-tool="3" title="Chegada (Goal)"><div class="icon-goal"></div></button>
+                <button class="tool-btn" data-tool="4" title="Inimigo Slime"><div class="icon-enemy-mk"></div></button>
+                <button class="tool-btn" data-tool="5" title="Trampolim"><div class="icon-pad"></div></button>
+                <button class="tool-btn" data-tool="6" title="Espinhos"><div class="icon-spike"></div></button>
+                <div style="width:2px;height:28px;background:#2a3454;margin:0 4px;"></div>
+                <button class="tool-btn" data-tool="0" title="Borracha"><div class="icon-eraser"></div></button>
+            </div>
+            <div class="tool-group">
+                <select id="biome-select">
+                    <option value="nebula">Nebula Gate</option>
+                    <option value="obsidian">Obsidian Void</option>
+                    <option value="toxic">Toxic Sector</option>
+                </select>
+            </div>
+            <button class="btn" id="btn-maker-clear" style="background:#552222;">Apagar Mapa</button>
+        </div>
+
+        <!-- MAKER MODAL -->
+        <div id="maker-modal-overlay">
+            <div class="maker-modal-box" id="maker-modal-box">
+                <div class="maker-modal-icon" id="maker-modal-icon">⚠️</div>
+                <div class="maker-modal-title" id="maker-modal-title">Título</div>
+                <div class="maker-modal-text" id="maker-modal-text">Mensagem do sistema aqui.</div>
+                <div class="maker-modal-buttons" id="maker-modal-buttons">
+                    <button class="maker-modal-btn maker-modal-btn-primary" id="maker-modal-ok">ENTENDIDO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAKER STATUS MSG -->
+        <div id="maker-status-msg">FASE CONCLUÍDA!</div>
+        <div id="maker-camera-hint">Mova a Câmera com W A S D ou Setas | Desenhe com o Mouse</div>
+
+        <!-- BOSS HUD -->
+        <div id="boss-hud">
+            <div id="player-hp-display">❤️❤️❤️</div>
+            <div id="boss-puzzle-ui">
+                <div id="boss-puzzle-name">Cubo 3D Ancestral</div>
+                <div id="boss-puzzle-bar-bg"><div id="boss-puzzle-bar-fill"></div></div>
+            </div>
+            <div style="width:50px"></div>
+        </div>
+
+        <!-- MENU OVERLAY -->
+        <div id="menu-overlay" class="modal-overlay">
+            <button class="icon-btn" id="lobby-settings-btn" title="Configurações">⚙️</button>
+            <div class="menu-title" id="t-title">GALACTIC REALMS</div>
+            <div class="menu-sub" id="t-subtitle">Explore mundos além da imaginação</div>
+            <div class="menu-buttons">
+                <button class="menu-btn" id="continue-btn" style="display:none;">▶ <span id="t-continue">CONTINUAR</span></button>
+                <button class="menu-btn" id="play-btn">▶ <span id="t-newGame">NOVO JOGO</span></button>
+                <button class="menu-btn locked" id="boss-btn">☠ <span id="t-boss">CHEFÃO</span></button>
+                <button class="menu-btn maker-btn" id="maker-btn">🛠️ <span id="t-maker">GALACTIC MAKER</span></button>
+            </div>
+        </div>
+
+        <!-- SETTINGS OVERLAY -->
+        <div id="settings-overlay" class="modal-overlay hidden">
+            <div class="settings-panel">
+                <h2 id="t-settings">Configurações</h2>
+                <div class="setting-group">
+                    <label id="t-lang">Idioma / Language</label>
+                    <select id="lang-select">
+                        <option value="pt-BR">Português (Brasil)</option>
+                        <option value="pt-PT">Português (Portugal)</option>
+                        <option value="es">Español</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label id="t-fov">Campo de Visão (FOV)</label>
+                    <input type="range" id="fov-slider" min="0.5" max="1.5" step="0.1" value="1.0">
+                </div>
+                <div style="display:flex;gap:10px;margin-top:20px;">
+                    <button class="menu-btn" style="flex:1;margin:0;padding:15px;" id="close-settings-btn"><span id="t-back">Voltar</span></button>
+                    <button class="menu-btn" style="flex:1;margin:0;padding:15px;background:rgba(200,50,50,0.4);border-color:#ff5555;" id="exit-game-btn"><span id="t-exit">Sair p/ Lobby</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CREDITS OVERLAY -->
+        <div id="credits-overlay">
+            <div class="credits-text">
+                <h1 id="c-thx">Obrigado por jogar!</h1>
+                <p id="c-dev">Desenvolvido por</p>
+                <p>Kevin</p><p>Pablo</p><p>Emanuel Ian</p><p>Emanuel Bordinassi</p>
+                <p>Mariana de Melo</p><p>Ana Vitória</p><p>Gabriely Martins</p>
+                <p style="margin-top:50px;" id="c-end">✨ Fim ✨</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // DICIONÁRIO INTERNACIONAL (i18n) - COMPLETO
+        // ============================================================================
+        const i18n = {
+            'pt-BR': {
+                play: 'JOGAR', newGame: 'NOVO JOGO', continue: 'CONTINUAR', boss: 'CHEFÃO',
+                settings: 'Configurações', back: 'Voltar', exit: 'Sair p/ Lobby',
+                subtitle: 'Explore mundos além da imaginação', thx: 'Obrigado por jogar!',
+                dev: 'Desenvolvido por', end: '✨ Fim ✨', died: 'VOCÊ MORREU',
+                complete: '✨ FASE CONCLUÍDA ✨', bossWaiting: '☠ O cubo está te esperando... ☠',
+                tutMove: 'Use ◀ ▶ (ou A/D) para mover e ⬆ (ou Espaço) para pular',
+                tutDouble: 'Pressione Pular no ar para o Pulo Duplo!',
+                tutDash: 'Aperte SHIFT para o Super Dash!',
+                bossDefeated: 'CUBO PURIFICADO! ✨', bossName: 'Cubo 3D Ancestral',
+                maker: 'GALACTIC MAKER', makerLobby: 'Lobby',
+                mkPlay: 'JOGAR', mkEdit: 'EDITAR', mkClear: 'Apagar Mapa',
+                mkNoSpawnTitle: 'Spawn Ausente', mkNoSpawnMsg: 'Coloque um "Spawn Player" na fase antes de começar a jogar!',
+                mkClearTitle: 'Apagar Tudo?',
+                mkClearMsg: 'Esta ação irá remover todos os blocos e entidades criados. Deseja continuar?',
+                mkCancel: 'CANCELAR', mkConfirm: 'CONFIRMAR', mkOk: 'ENTENDIDO',
+                mkComplete: 'FASE CONCLUÍDA! ✨', mkDied: 'VOCÊ MORREU ☠️',
+                mkHint: 'Mova a Câmera com W A S D ou Setas | Desenhe com o Mouse',
+                mkBiomeNebula: 'Nebula Gate', mkBiomeObsidian: 'Obsidian Void', mkBiomeToxic: 'Toxic Sector'
+            },
+            'pt-PT': {
+                play: 'JOGAR', newGame: 'NOVO JOGO', continue: 'CONTINUAR', boss: 'BOSS',
+                settings: 'Definições', back: 'Voltar', exit: 'Sair p/ Lobby',
+                subtitle: 'Explora mundos além da imaginação', thx: 'Obrigado por jogar!',
+                dev: 'Desenvolvido por', end: '✨ Fim ✨', died: 'MORRESTE',
+                complete: '✨ FASE CONCLUÍDA ✨', bossWaiting: '☠ O cubo está à tua espera... ☠',
+                tutMove: 'Usa ◀ ▶ para mover e ⬆ para saltar',
+                tutDouble: 'Pressiona ⬆ no ar para o Salto Duplo!',
+                tutDash: 'Carrega em Shift para o Super Dash!',
+                bossDefeated: 'CUBO PURIFICADO! ✨', bossName: 'Cubo 3D Ancestral',
+                maker: 'GALACTIC MAKER', makerLobby: 'Lobby',
+                mkPlay: 'JOGAR', mkEdit: 'EDITAR', mkClear: 'Apagar Mapa',
+                mkNoSpawnTitle: 'Spawn Ausente', mkNoSpawnMsg: 'Coloca um "Spawn Player" na fase antes de começar a jogar!',
+                mkClearTitle: 'Apagar Tudo?',
+                mkClearMsg: 'Esta ação irá remover todos os blocos e entidades criados. Desejas continuar?',
+                mkCancel: 'CANCELAR', mkConfirm: 'CONFIRMAR', mkOk: 'ENTENDIDO',
+                mkComplete: 'FASE CONCLUÍDA! ✨', mkDied: 'MORRESTE ☠️',
+                mkHint: 'Move a Câmera com W A S D ou Setas | Desenha com o Mouse',
+                mkBiomeNebula: 'Nebula Gate', mkBiomeObsidian: 'Obsidian Void', mkBiomeToxic: 'Toxic Sector'
+            },
+            'es': {
+                play: 'JUGAR', newGame: 'NUEVA PARTIDA', continue: 'CONTINUAR', boss: 'JEFE',
+                settings: 'Ajustes', back: 'Volver', exit: 'Salir al Menú',
+                subtitle: 'Explora mundos más allá de la imaginación', thx: '¡Gracias por jugar!',
+                dev: 'Desarrollado por', end: '✨ Fin ✨', died: 'HAS MUERTO',
+                complete: '✨ NIVEL COMPLETADO ✨', bossWaiting: '☠ El cubo te está esperando... ☠',
+                tutMove: 'Usa ◀ ▶ para moverte y ⬆ para saltar',
+                tutDouble: '¡Presiona ⬆ en el aire para Doble Salto!',
+                tutDash: '¡Pulsa Shift para Super Dash!',
+                bossDefeated: '¡CUBO PURIFICADO! ✨', bossName: 'Cubo 3D Ancestral',
+                maker: 'GALACTIC MAKER', makerLobby: 'Lobby',
+                mkPlay: 'JUGAR', mkEdit: 'EDITAR', mkClear: 'Borrar Mapa',
+                mkNoSpawnTitle: 'Spawn Ausente', mkNoSpawnMsg: '¡Coloca un "Spawn Player" en la fase antes de jugar!',
+                mkClearTitle: '¿Borrar Todo?',
+                mkClearMsg: 'Esta acción eliminará todos los bloques y entidades. ¿Deseas continuar?',
+                mkCancel: 'CANCELAR', mkConfirm: 'CONFIRMAR', mkOk: 'ENTENDIDO',
+                mkComplete: '¡NIVEL COMPLETADO! ✨', mkDied: 'HAS MUERTO ☠️',
+                mkHint: 'Mueve la Cámara con W A S D o Flechas | Dibuja con el Mouse',
+                mkBiomeNebula: 'Nebula Gate', mkBiomeObsidian: 'Obsidian Void', mkBiomeToxic: 'Toxic Sector'
+            },
+            'en': {
+                play: 'PLAY', newGame: 'NEW GAME', continue: 'CONTINUE', boss: 'BOSS',
+                settings: 'Settings', back: 'Back', exit: 'Exit to Lobby',
+                subtitle: 'Explore worlds beyond imagination', thx: 'Thank you for playing!',
+                dev: 'Created by', end: '✨ The End ✨', died: 'YOU DIED',
+                complete: '✨ LEVEL CLEARED ✨', bossWaiting: '☠ The cube is waiting for you... ☠',
+                tutMove: 'Use ◀ ▶ to move and ⬆ to jump',
+                tutDouble: 'Press ⬆ in mid-air for Double Jump!',
+                tutDash: 'Press Shift for Super Dash!',
+                bossDefeated: 'CUBE PURIFIED! ✨', bossName: 'Ancient 3D Cube',
+                maker: 'GALACTIC MAKER', makerLobby: 'Lobby',
+                mkPlay: 'PLAY', mkEdit: 'EDIT', mkClear: 'Clear Map',
+                mkNoSpawnTitle: 'Missing Spawn', mkNoSpawnMsg: 'Place a "Player Spawn" on the level before playing!',
+                mkClearTitle: 'Clear Everything?',
+                mkClearMsg: 'This will remove all blocks and entities. Do you wish to continue?',
+                mkCancel: 'CANCEL', mkConfirm: 'CONFIRM', mkOk: 'GOT IT',
+                mkComplete: 'LEVEL CLEARED! ✨', mkDied: 'YOU DIED ☠️',
+                mkHint: 'Move Camera with W A S D or Arrows | Draw with Mouse',
+                mkBiomeNebula: 'Nebula Gate', mkBiomeObsidian: 'Obsidian Void', mkBiomeToxic: 'Toxic Sector'
+            }
+        };
+        let currentLang = 'pt-BR';
+        const getText = (key) => i18n[currentLang]?.[key] || i18n['pt-BR'][key];
+
+        // ============================================================================
+        // SOUND SYNTH (APENAS ADICIONADO - NADA MAIS ALTERADO)
+        // ============================================================================
+        const SoundSynth = {
+            audioCtx: null,
+            sfxVolume: 0.7,
+
+            init() {
+                try {
+                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    this.audioCtx = null;
+                }
+            },
+
+            playJump() {
+                if (!this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.25);
+                gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            },
+
+            playDoubleJump() {
+                if (!this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
+                gain.gain.setValueAtTime(0.25 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            },
+
+            playDash() {
+                if (!this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                const bufferSize = this.audioCtx.sampleRate * 0.15;
+                const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.2;
+                const noise = this.audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = this.audioCtx.createGain();
+                gain.gain.setValueAtTime(0.4 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                const osc = this.audioCtx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+                const oscGain = this.audioCtx.createGain();
+                oscGain.gain.setValueAtTime(0.1 * this.sfxVolume, now);
+                oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.connect(oscGain);
+                noise.connect(gain);
+                oscGain.connect(this.audioCtx.destination);
+                gain.connect(this.audioCtx.destination);
+                noise.start(now);
+                osc.start(now);
+                noise.stop(now + 0.15);
+                osc.stop(now + 0.15);
+            },
+
+            playHit() {
+                if (!this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                gain.gain.setValueAtTime(0.5 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            },
+
+            playBossHit() {
+                if (!this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(1000, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.4 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            },
+
+            playGoal() {
+                if (!this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                const notes = [523, 659, 784, 1047];
+                notes.forEach((freq, i) => {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.1);
+                    gain.gain.setValueAtTime(0.3 * this.sfxVolume, now + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start(now + i * 0.1);
+                    osc.stop(now + i * 0.1 + 0.3);
+                });
+            }
+        };
+
+        // ============================================================================
+        // ESTADO GLOBAL DA APLICAÇÃO
+        // ============================================================================
+        let appState = 'MENU'; // 'MENU' | 'PLAYING' | 'BOSS' | 'MAKER' | 'CREDITS'
+        let userFovMultiplier = 1.0;
+
+        // ============================================================================
+        // CANVAS E CONTEXTO
+        // ============================================================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let canvasWidth = window.innerWidth;
+        let canvasHeight = window.innerHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        function resizeCanvas() {
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // ============================================================================
+        // INPUT GLOBAL (compartilhado, mas interpretado conforme appState)
+        // ============================================================================
+        const Input = {
+            left: false,
+            right: false,
+            up: false,
+            down: false,
+            upPressed: false,
+            dash: false
+        };
+
+        window.addEventListener('keydown', e => {
+            const k = e.key.toLowerCase();
+            if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' ', 'w', 'a', 's', 'd'].includes(
+                    k)) e.preventDefault();
+            if (k === 'arrowleft' || k === 'a') Input.left = true;
+            if (k === 'arrowright' || k === 'd') Input.right = true;
+            if (k === 'arrowup' || k === 'w' || k === ' ') {
+                if (!Input.up) { Input.up = true;
+                    Input.upPressed = true; }
+            }
+            if (k === 'arrowdown' || k === 's') Input.down = true;
+            if (e.key === 'Shift') Input.dash = true;
+        });
+        window.addEventListener('keyup', e => {
+            const k = e.key.toLowerCase();
+            if (k === 'arrowleft' || k === 'a') Input.left = false;
+            if (k === 'arrowright' || k === 'd') Input.right = false;
+            if (k === 'arrowup' || k === 'w' || k === ' ') { Input.up = false;
+                Input.upPressed = false; }
+            if (k === 'arrowdown' || k === 's') Input.down = false;
+            if (e.key === 'Shift') Input.dash = false;
+        });
+
+        // ============================================================================
+        // GALACTIC REALMS ENGINE
+        // ============================================================================
+        const Realms = {
+            WORLD_WIDTH: 10000,
+            WORLD_HEIGHT: 1200,
+            GROUND_Y: 1000,
+            ARENA_W: 1500,
+            PLAYER_W: 36,
+            PLAYER_H: 42,
+            GRAVITY: 0.48,
+            GROUND_SPEED: 5.2,
+            AIR_SPEED: 1.8,
+            JUMP_FORCE: -13.5,
+            GROUND_FRICTION: 0.75,
+            AIR_RESISTANCE: 0.92,
+            GROUND_CONTROL: 0.45,
+            AIR_CONTROL: 0.18,
+            CUBE_COLORS: ['#ffffff', '#ffcf00', '#ee3b2b', '#ff6b00', '#0046ad', '#009b48'],
+            SOLVED_COLOR: '#009b48',
+            TOTAL_NORMAL_LEVELS: 31,
+            BOSS_LEVEL_INDEX: 31,
+
+            camera: { x: 0, y: 0, zoom: 1.0 },
+            gameState: 'MENU',
+            currentLevelIdx: 0,
+            savedLevel: 0,
+            bossUnlocked: false,
+            levelComplete: false,
+            dead: false,
+            victory: false,
+            deathFlashAlpha: 0,
+            shake: 0,
+            nextLevelTimer: null,
+
+            player: { x: 0, y: 0, vx: 0, vy: 0, w: 36, h: 42, hp: 3, maxHp: 3, invulnerable: 0, grounded: false,
+                doubleJumpUsed: false, dashCooldown: 0, dashUsed: false, facingRight: true, ridingPlatform: null },
+            boss: { x: 0, y: 150, w: 100, h: 100, d: 40, vx: 3, vy: 0, segments: [], solvedSegments: 0,
+                totalSegments: 27, state: 'float', timer: 0, animTimer: 0, crystals: [] },
+
+            levels: [],
+            platforms: [],
+            movingPlatforms: [],
+            particles: [],
+            projectiles: [],
+            starsFar: [],
+            starsMid: [],
+            starsNear: [],
+            clouds: [],
+
+            init() {
+                try {
+                    this.savedLevel = parseInt(localStorage.getItem('galactic_save_pc')) || 0;
+                    this.bossUnlocked = localStorage.getItem('galactic_boss_unlocked') === 'true';
+                } catch (e) {}
+                this.createLevels();
+            },
+
+            createLevels() {
+                this.levels.push({
+                    name: 'NEBULA GATE',
+                    bgTop: '#1a1030',
+                    bgBot: '#0a0a1a',
+                    starHue: 280,
+                    startX: 250,
+                    platforms: [{ x: 0, y: this.GROUND_Y, w: 1500, h: 30, type: 'ground' }, { x: 1600,
+                        y: 860, w: 100, h: 18 }, { x: 1900, y: 780, w: 120, h: 18 }, { x: 2300, y: 700,
+                        w: 140, h: 18 }, { x: 2600, y: 800, w: 200, h: 18 }],
+                    goalIdx: 4
+                });
+                const names = ['OBSIDIAN VOID', 'CRYSTAL CAVERNS', 'MAGMA CORE', 'COSMIC TERMINUS',
+                    'ANDROMEDA STRAITS', 'PHOTON RINGS', 'EVENT HORIZON', 'SOLARIS', 'LUNARIS',
+                    'ASTEROID BELT', 'COMET TAIL', 'NOVA', 'PULSAR', 'QUASAR', 'WORMHOLE', 'DARK NEBULA',
+                    'STARFORGE', 'ICEBOUND', 'MIRA', 'RIGEL', 'BETELGEUSE', 'ORION', 'CYGNUS', 'LYRA',
+                    'HERCULES', 'ANDROMEDA', 'TRIANGULUM', 'CASSIOPEIA', 'THE VOID PILGRIMAGE'
+                ];
+                for (let i = 0; i < 30; i++) {
+                    let plats = [{ x: 0, y: this.GROUND_Y, w: 600, h: 30, type: 'ground' }];
+                    let cx = 600,
+                        cy = this.GROUND_Y - 50;
+                    let isHard = i >= 14;
+                    let platCount = 8 + (i % 8) + (isHard ? 2 : 0);
+                    for (let j = 0; j < platCount; j++) {
+                        let gapX = isHard ? 200 + Math.random() * 150 : 200 + Math.random() * 200;
+                        let gapY = isHard ? (Math.random() * 250) - 125 : (Math.random() * 200) - 100;
+                        cx += gapX;
+                        cy += gapY;
+                        if (cy > this.GROUND_Y - 20) cy = this.GROUND_Y - 50;
+                        if (cy < 300) cy = 300;
+                        let w = isHard ? 65 + Math.random() * 45 : 100 + Math.random() * 50;
+                        let isMoving = isHard && Math.random() > 0.8;
+                        let plat = { x: cx, y: cy, w: w, h: 18 };
+                        if (isMoving) {
+                            plat.type = 'moving';
+                            plat.vx = (Math.random() > 0.5 ? 1 : -1) * (1.0 + Math.random() * 1.0);
+                            plat.minX = cx - 150;
+                            plat.maxX = cx + 150;
+                        }
+                        plats.push(plat);
+                    }
+                    cx += 300;
+                    plats.push({ x: cx, y: cy, w: 200, h: 18 });
+                    this.levels.push({
+                        name: names[i] || `ZONE ${i+2}`,
+                        bgTop: `#${((i*20)%256).toString(16).padStart(2,'0')}1020`,
+                        bgBot: '#010101',
+                        starHue: (i * 37) % 360,
+                        startX: 200,
+                        platforms: plats,
+                        goalIdx: plats.length - 1,
+                        isTrain: (i === 8)
+                    });
+                }
+                this.levels.push({
+                    name: '☠ BOSS ARENA ☠',
+                    bgTop: '#08020a',
+                    bgBot: '#000000',
+                    starHue: 60,
+                    startX: this.ARENA_W / 2 - 18,
+                    platforms: [{ x: 0, y: this.GROUND_Y, w: this.ARENA_W, h: 30, type: 'ground' }],
+                    goalIdx: 0,
+                    isTrain: false
+                });
+            },
+
+            safeRoundRect(ctx, x, y, w, h, r) {
+                if (typeof r === 'undefined') r = 5;
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath();
+            },
+            drawPoly(ctx, pts, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            },
+            spawnParticle(x, y, vx, vy, color, life, size) {
+                this.particles.push({ x, y, vx, vy, color, life, maxLife: life, size });
+            },
+
+            initLevel(idx) {
+                this.currentLevelIdx = idx;
+                if (idx > this.savedLevel && idx <= this.BOSS_LEVEL_INDEX) {
+                    this.savedLevel = idx;
+                    try { localStorage.setItem('galactic_save_pc', this.savedLevel); } catch (e) {}
+                }
+                let levelData = this.levels[idx];
+                this.platforms = [];
+                this.movingPlatforms = [];
+                levelData.platforms.forEach(p => {
+                    if (p.type === 'moving') this.movingPlatforms.push({ ...p });
+                    else this.platforms.push({ ...p, type: p.type || 'normal' });
+                });
+                if (idx === this.BOSS_LEVEL_INDEX) {
+                    this.gameState = 'BOSS';
+                    document.getElementById('boss-hud').style.display = 'flex';
+                    document.getElementById('ui-overlay').style.display = 'flex';
+                    let FLOAT_Y = this.GROUND_Y - 400;
+                    this.boss.x = this.ARENA_W / 2 - 50;
+                    this.boss.y = FLOAT_Y;
+                    this.boss.w = 100;
+                    this.boss.h = 100;
+                    this.boss.d = 40;
+                    this.boss.vx = 3;
+                    this.boss.vy = 0;
+                    this.boss.solvedSegments = 0;
+                    this.boss.totalSegments = 27;
+                    this.boss.segments = [];
+                    this.boss.state = 'float';
+                    this.boss.timer = 0;
+                    this.boss.animTimer = 0;
+                    this.boss.crystals = [{ angle: 0 }, { angle: Math.PI / 2 }, { angle: Math.PI }, { angle: Math
+                            .PI * 1.5 }];
+                    for (let i = 0; i < this.boss.totalSegments; i++) this.boss.segments.push({ color: this
+                            .CUBE_COLORS[Math.floor(Math.random() * (this.CUBE_COLORS.length - 1))],
+                        solved: false });
+                    document.getElementById('player-hp-display').innerText = '❤️❤️❤️';
+                    document.getElementById('boss-puzzle-bar-fill').style.width = '0%';
+                } else {
+                    this.gameState = 'PLAYING';
+                    document.getElementById('boss-hud').style.display = 'none';
+                    document.getElementById('ui-overlay').style.display = 'flex';
+                    let gPlat = levelData.platforms[levelData.goalIdx];
+                    levelData.goal = { x: gPlat.x + 40, y: gPlat.y - 80, w: 40, h: 80 };
+                    if (levelData.isTrain) this.movingPlatforms.push({ x: 1000, y: 850, w: 400, h: 30, vx: 2.5,
+                        minX: 800, maxX: 3500 });
+                }
+                this.player = { x: levelData.startX, y: this.GROUND_Y - this.PLAYER_H, vx: 0, vy: 0, w: this
+                        .PLAYER_W, h: this.PLAYER_H, hp: 3, maxHp: 3, invulnerable: 0, grounded: false,
+                    doubleJumpUsed: false, dashCooldown: 0, dashUsed: false, facingRight: true,
+                    ridingPlatform: null };
+                this.levelComplete = false;
+                this.dead = false;
+                this.victory = false;
+                this.deathFlashAlpha = 0;
+                this.shake = 0;
+                this.particles = [];
+                this.projectiles = [];
+                if (this.nextLevelTimer) clearTimeout(this.nextLevelTimer);
+                document.getElementById('level-message').innerText = (idx === this.BOSS_LEVEL_INDEX) ?
+                    `☠ ${levelData.name} ☠` : `🌌 ${levelData.name}  ·  Lvl ${idx+1}/${this.TOTAL_NORMAL_LEVELS}`;
+                this.starsFar = [];
+                this.starsMid = [];
+                this.starsNear = [];
+                this.clouds = [];
+                if (idx !== this.BOSS_LEVEL_INDEX) {
+                    for (let i = 0; i < 300; i++) {
+                        let h = (levelData.starHue + 30 * Math.random()) % 360;
+                        this.starsFar.push({ x: Math.random() * this.WORLD_WIDTH, y: Math.random() *
+                                canvasHeight * 2, size: 1.5, color: `hsl(${h}, 60%, 70%)`, b: 0.5 + Math
+                                .random() * 0.5 });
+                        this.starsMid.push({ x: Math.random() * this.WORLD_WIDTH, y: Math.random() *
+                                canvasHeight * 2, size: 2.5, color: `hsl(${h+20}, 70%, 80%)`, b: 0.6 + Math
+                                .random() * 0.4 });
+                        this.starsNear.push({ x: Math.random() * this.WORLD_WIDTH, y: Math.random() *
+                                canvasHeight * 2, size: 3.5, color: `hsl(${h+40}, 80%, 90%)`, b: 0.7 + Math
+                                .random() * 0.3 });
+                    }
+                    for (let i = 0; i < 40; i++) this.clouds.push({ x: Math.random() * this.WORLD_WIDTH, y: Math
+                            .random() * (canvasHeight - 300), size: 100 + Math.random() * 200, speed: 0.2 + Math
+                            .random() * 0.5, alpha: 0.1 + Math.random() * 0.2 });
+                }
+                let baseZoom = (idx === this.BOSS_LEVEL_INDEX) ? 0.6 : 0.75;
+                this.camera.zoom = baseZoom * userFovMultiplier;
+                let vw = canvasWidth / this.camera.zoom;
+                let vh = canvasHeight / this.camera.zoom;
+                let limitX = (idx === this.BOSS_LEVEL_INDEX) ? this.ARENA_W : this.WORLD_WIDTH;
+                let tx = (idx === this.BOSS_LEVEL_INDEX && vw > limitX) ? -(vw - limitX) / 2 : Math.max(0, Math
+                    .min(this.player.x + this.player.w / 2 - vw / 2, limitX - vw));
+                let ty = Math.max(0, Math.min(this.player.y + this.player.h / 2 - vh / 2, this.WORLD_HEIGHT -
+                    vh));
+                this.camera.x = tx;
+                this.camera.y = ty;
+            },
+
+            damagePlayer() {
+                if (this.player.invulnerable > 0 || this.levelComplete || this.dead || this.victory) return;
+                this.player.hp--;
+                this.player.invulnerable = 70;
+                this.player.vy = -9;
+                this.player.vx = (this.player.x > this.boss.x) ? 12 : -12;
+                this.shake = 18;
+                SoundSynth.playHit(); // SOM DE DANO
+                let coracoes = '';
+                for (let i = 0; i < this.player.hp; i++) coracoes += '❤️';
+                if (this.gameState === 'BOSS') document.getElementById('player-hp-display').innerText = coracoes ||
+                    '💔';
+                if (this.player.hp <= 0) { this.dead = true;
+                    this.deathFlashAlpha = 1.0; }
+            },
+
+            resolveCubeSegment() {
+                let unso = [];
+                this.boss.segments.forEach((seg, idx) => { if (!seg.solved) unso.push(idx); });
+                if (unso.length > 0) {
+                    let rIdx = unso[Math.floor(Math.random() * unso.length)];
+                    this.boss.segments[rIdx].color = this.SOLVED_COLOR;
+                    this.boss.segments[rIdx].solved = true;
+                    this.boss.solvedSegments++;
+                    this.player.vy = -14;
+                    this.shake = 12;
+                    SoundSynth.playBossHit(); // SOM DE ACERTO NO CHEFE
+                    for (let i = 0; i < 15; i++) this.spawnParticle(this.boss.x + this.boss.w / 2, this.boss.y, (Math
+                        .random() * 6 - 3), -(Math.random() * 5 + 2), this.SOLVED_COLOR, 25, 8);
+                    document.getElementById('boss-puzzle-bar-fill').style.width = (this.boss.solvedSegments / this
+                        .boss.totalSegments * 100) + '%';
+                    if (this.boss.solvedSegments >= this.boss.totalSegments) {
+                        this.victory = true;
+                        this.bossUnlocked = true;
+                        try { localStorage.setItem('galactic_boss_unlocked', 'true'); } catch (e) {}
+                        document.getElementById('level-message').innerText = getText('bossDefeated');
+                        for (let i = 0; i < 80; i++) this.spawnParticle(this.boss.x + this.boss.w / 2, this.boss.y +
+                            this.boss.h / 2, (Math.random() * 20 - 10), (Math.random() * 20 - 10), this
+                            .SOLVED_COLOR, 50, Math.random() * 10 + 2);
+                        setTimeout(() => triggerCredits(), 3000);
+                    }
+                }
+            },
+
+            update() {
+                if (this.levelComplete || this.victory) return;
+                if (this.player.invulnerable > 0) this.player.invulnerable--;
+                if (this.player.dashCooldown > 0) this.player.dashCooldown--;
+                if (this.shake > 0) this.shake *= 0.9;
+                if (this.shake < 0.5) this.shake = 0;
+                for (let mp of this.movingPlatforms) { mp.x += mp.vx; if (mp.x < mp.minX || mp.x + mp.w > mp.maxX) mp
+                        .vx *= -1; }
+                if (Input.left) this.player.facingRight = false;
+                if (Input.right) this.player.facingRight = true;
+                if (Input.dash && !this.player.dashUsed && this.player.dashCooldown <= 0) {
+                    this.player.vx = this.player.facingRight ? 18 : -18;
+                    this.player.vy = 0;
+                    this.player.dashCooldown = 60;
+                    this.player.dashUsed = true;
+                    this.shake = 5;
+                    SoundSynth.playDash(); // SOM DE DASH
+                    if (this.gameState === 'BOSS') this.player.invulnerable = Math.max(this.player.invulnerable,
+                    15);
+                    for (let i = 0; i < 10; i++) this.spawnParticle(this.player.x + this.player.w / 2, this.player.y +
+                        this.player.h / 2, -this.player.vx * 0.2 + (Math.random() * 2 - 1), Math.random() * 4 - 2,
+                        '#ffaa00', 15, 4);
+                }
+                if (!Input.dash) this.player.dashUsed = false;
+                if (this.player.grounded) {
+                    if (Input.left) this.player.vx -= this.GROUND_SPEED * this.GROUND_CONTROL;
+                    if (Input.right) this.player.vx += this.GROUND_SPEED * this.GROUND_CONTROL;
+                    this.player.vx *= this.GROUND_FRICTION;
+                    if (Math.abs(this.player.vx) < 0.2) this.player.vx = 0;
+                } else {
+                    if (Input.left) this.player.vx -= this.AIR_SPEED * this.AIR_CONTROL;
+                    if (Input.right) this.player.vx += this.AIR_SPEED * this.AIR_CONTROL;
+                    this.player.vx *= this.AIR_RESISTANCE;
+                }
+                if (Input.upPressed) {
+                    if (this.player.grounded) {
+                        this.player.vy = this.JUMP_FORCE;
+                        this.player.grounded = false;
+                        this.player.doubleJumpUsed = false;
+                        SoundSynth.playJump(); // SOM DE PULO
+                    } else if (!this.player.doubleJumpUsed) {
+                        this.player.vy = this.JUMP_FORCE;
+                        this.player.doubleJumpUsed = true;
+                        SoundSynth.playDoubleJump(); // SOM DE PULO DUPLO
+                        for (let i = 0; i < 15; i++) this.spawnParticle(this.player.x + this.player.w / 2, this.player.y +
+                            this.player.h, (Math.random() * 4 - 2), Math.random() * 3, '#aaccff', 15, Math.random() * 5 + 2);
+                    }
+                    Input.upPressed = false;
+                }
+                if (this.player.ridingPlatform) this.player.x += this.player.ridingPlatform.vx;
+                this.player.vy += this.GRAVITY;
+                this.player.x += this.player.vx;
+                this.player.y += this.player.vy;
+                this.player.grounded = false;
+                this.player.ridingPlatform = null;
+                const allPlats = [...this.platforms, ...this.movingPlatforms];
+                for (let pl of allPlats) {
+                    if (this.player.x < pl.x + pl.w && this.player.x + this.player.w > pl.x && this.player.y < pl.y +
+                        pl.h && this.player.y + this.player.h > pl.y) {
+                        let oL = (this.player.x + this.player.w) - pl.x;
+                        let oR = (pl.x + pl.w) - this.player.x;
+                        let oT = (this.player.y + this.player.h) - pl.y;
+                        let oB = (pl.y + pl.h) - this.player.y;
+                        if (Math.min(oL, oR) < Math.min(oT, oB)) { this.player.x = oL < oR ? pl.x - this.player.w :
+                                pl.x + pl.w;
+                            this.player.vx = 0; } else { if (oT < oB) { this.player.y = pl.y - this.player.h;
+                                this.player.vy = 0; if (this.player.vy >= 0) { this.player.grounded = true; if (pl
+                                        .type === 'moving') this.player.ridingPlatform = pl; } } else { this
+                                    .player.y = pl.y + pl.h;
+                                this.player.vy = 0; } }
+                    }
+                }
+                let limitX = (this.gameState === 'BOSS') ? this.ARENA_W : this.WORLD_WIDTH;
+                if (this.player.x < 0) { this.player.x = 0;
+                    this.player.vx = 0; }
+                if (this.player.x + this.player.w > limitX) { this.player.x = limitX - this.player.w;
+                    this.player.vx = 0; }
+                if (this.player.y > this.WORLD_HEIGHT + 200) { this.dead = true;
+                    this.deathFlashAlpha = 1.0; }
+                for (let i = this.particles.length - 1; i >= 0; i--) { let p = this.particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--; if (p.life <= 0) this.particles.splice(i, 1); }
+                if (this.gameState === 'PLAYING') {
+                    let g = this.levels[this.currentLevelIdx].goal;
+                    if (!this.dead && this.player.x < g.x + g.w && this.player.x + this.player.w > g.x && this.player
+                        .y < g.y + g.h && this.player.y + this.player.h > g.y) {
+                        this.levelComplete = true;
+                        SoundSynth.playGoal(); // SOM DE OBJETIVO CONCLUÍDO
+                        if (this.currentLevelIdx === this.TOTAL_NORMAL_LEVELS - 1) {
+                            document.getElementById('level-message').innerText = getText('bossWaiting');
+                            this.shake = 20;
+                            for (let i = 0; i < 30; i++) this.spawnParticle(g.x + 20, g.y + 40, (Math.random() *
+                                10 - 5), -(Math.random() * 5 + 2), '#ff0000', 30, 6);
+                            this.nextLevelTimer = setTimeout(() => { this.initLevel(this.BOSS_LEVEL_INDEX);
+                                appState = 'BOSS'; }, 4000);
+                        } else {
+                            document.getElementById('level-message').innerText = getText('complete');
+                            this.nextLevelTimer = setTimeout(() => { this.initLevel(this.currentLevelIdx +
+                                1); }, 1500);
+                        }
+                    }
+                } else if (this.gameState === 'BOSS' && !this.dead) {
+                    this.boss.animTimer++;
+                    for (let c of this.boss.crystals) c.angle += 0.03;
+                    let FLOAT_Y = this.GROUND_Y - 400;
+                    if (this.boss.state === 'float') {
+                        this.boss.x += this.boss.vx;
+                        this.boss.y = FLOAT_Y + Math.sin(this.boss.animTimer * 0.05) * 20;
+                        if (this.boss.x < 150) { this.boss.x = 150;
+                            this.boss.vx *= -1; }
+                        if (this.boss.x + this.boss.w > this.ARENA_W - 150) { this.boss.x = this.ARENA_W - this
+                                .boss.w - 150;
+                            this.boss.vx *= -1; }
+                        this.boss.timer++;
+                        if (this.boss.timer % 70 === 0) {
+                            let dx = (this.player.x + this.player.w / 2) - (this.boss.x + this.boss.w / 2);
+                            let dy = (this.player.y + this.player.h / 2) - (this.boss.y + this.boss.h / 2);
+                            let angle = Math.atan2(dy, dx);
+                            this.projectiles.push({ x: this.boss.x + this.boss.w / 2, y: this.boss.y + this.boss.h /
+                                    2, vx: Math.cos(angle) * 4.5, vy: Math.sin(angle) * 4.5, radius: 12,
+                                color: this.CUBE_COLORS[Math.floor(Math.random() * (this.CUBE_COLORS.length -
+                                    1))] });
+                        }
+                        if (this.boss.timer > 200 && Math.random() < 0.02) { this.boss.state = 'charge';
+                            this.boss.timer = 0;
+                            this.boss.vx = 0; }
+                    } else if (this.boss.state === 'charge') {
+                        let tX = this.player.x + this.player.w / 2 - this.boss.w / 2;
+                        this.boss.x += (tX - this.boss.x) * 0.12;
+                        this.boss.x += (Math.random() * 8 - 4);
+                        this.boss.timer++;
+                        if (this.boss.timer > 60) { this.boss.state = 'slam';
+                            this.boss.vy = 25;
+                            this.boss.x = tX; }
+                    } else if (this.boss.state === 'slam') {
+                        this.boss.y += this.boss.vy;
+                        if (this.boss.y + this.boss.h >= this.GROUND_Y) {
+                            this.boss.y = this.GROUND_Y - this.boss.h;
+                            this.boss.vy = 0;
+                            this.boss.state = 'stunned';
+                            this.boss.timer = 0;
+                            this.shake = 25;
+                            for (let i = 0; i < 30; i++) this.spawnParticle(this.boss.x + this.boss.w / 2, this
+                                .GROUND_Y, (Math.random() * 16 - 8), -(Math.random() * 6 + 3), this.CUBE_COLORS[
+                                    Math.floor(Math.random() * this.CUBE_COLORS.length)], 30, 6);
+                        }
+                    } else if (this.boss.state === 'stunned') { this.boss.timer++; if (this.boss.timer > 150) this
+                            .boss.state = 'return'; } else if (this.boss.state === 'return') { this.boss.y -= 5; if (
+                            this.boss.y <= FLOAT_Y) { this.boss.y = FLOAT_Y;
+                            this.boss.vx = (Math.random() > 0.5 ? 3.5 : -3.5);
+                            this.boss.state = 'float';
+                            this.boss.timer = 0; } }
+                    if (this.player.invulnerable === 0) {
+                        if (this.player.x < this.boss.x + this.boss.w && this.player.x + this.player.w > this.boss.x &&
+                            this.player.y < this.boss.y + this.boss.h && this.player.y + this.player.h > this.boss
+                            .y) {
+                            if (this.boss.state === 'stunned' && this.player.vy > 0 && this.player.y + this.player.h <
+                                this.boss.y + 40) this.resolveCubeSegment();
+                            else this.damagePlayer();
+                        }
+                    }
+                    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+                        let p = this.projectiles[i];
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        if (this.player.invulnerable === 0 && p.x > this.player.x && p.x < this.player.x + this.player
+                            .w && p.y > this.player.y && p.y < this.player.y + this.player.h) { this.damagePlayer();
+                            this.projectiles.splice(i, 1); continue; }
+                        if (p.y > this.GROUND_Y || p.x < 0 || p.x > this.ARENA_W) this.projectiles.splice(i, 1);
+                    }
+                }
+                let baseZoom = (this.gameState === 'BOSS') ? 0.6 : 0.75;
+                this.camera.zoom = baseZoom * userFovMultiplier;
+                let vw = canvasWidth / this.camera.zoom;
+                let vh = canvasHeight / this.camera.zoom;
+                let tx;
+                if (this.gameState === 'BOSS' && vw > limitX) { tx = -(vw - limitX) / 2; } else { tx = Math.max(0, Math
+                        .min(this.player.x + this.player.w / 2 - vw / 2, limitX - vw)); }
+                let ty = Math.max(0, Math.min(this.player.y + this.player.h / 2 - vh / 2, this.WORLD_HEIGHT - vh /
+                2));
+                this.camera.x += (tx - this.camera.x) * 0.1;
+                this.camera.y += (ty - this.camera.y) * 0.1;
+            },
+
+            draw(now) {
+                const isSky = this.currentLevelIdx >= 19 && this.currentLevelIdx < 30 && this.gameState ===
+                    'PLAYING';
+                const isCont = this.currentLevelIdx >= 9 && this.currentLevelIdx < 19 && this.gameState ===
+                'PLAYING';
+                if (this.gameState === 'BOSS') { ctx.fillStyle = '#08020a';
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight); } else if (isSky) {
+                    let grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+                    grad.addColorStop(0, '#5f8ad0');
+                    grad.addColorStop(0.6, '#b7e0ff');
+                    grad.addColorStop(1, '#ffdfb0');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    for (let c of this.clouds) { let cx = (c.x - this.camera.x * c.speed) % (this.WORLD_WIDTH + 500); if (
+                            cx < -200) cx += this.WORLD_WIDTH + 500;
+                        ctx.beginPath();
+                        ctx.arc(cx, c.y - this.camera.y * c.speed, c.size, 0, Math.PI * 2);
+                        ctx.fill(); }
+                } else if (isCont) {
+                    let grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+                    grad.addColorStop(0, '#0b1a2a');
+                    grad.addColorStop(0.4, '#2d4b3a');
+                    grad.addColorStop(0.8, '#5a3e2b');
+                    grad.addColorStop(1, '#2d1e14');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                } else {
+                    let grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+                    grad.addColorStop(0, this.levels[this.currentLevelIdx].bgTop);
+                    grad.addColorStop(1, this.levels[this.currentLevelIdx].bgBot);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                }
+                if (this.gameState === 'PLAYING' && !isSky) {
+                    for (let s of this.starsFar) { let sx = (s.x - this.camera.x * 0.1) % this.WORLD_WIDTH; if (sx < 0) sx +=
+                            this.WORLD_WIDTH;
+                        ctx.globalAlpha = s.b * (0.7 + 0.3 * Math.sin(now * 0.002 + s.x));
+                        ctx.fillStyle = s.color;
+                        ctx.fillRect(sx, s.y - this.camera.y * 0.1, s.size, s.size); }
+                    ctx.globalAlpha = 1.0;
+                }
+                ctx.save();
+                let sX = (Math.random() * this.shake * 2) - this.shake;
+                let sY = (Math.random() * this.shake * 2) - this.shake;
+                ctx.translate(sX, sY);
+                ctx.scale(this.camera.zoom, this.camera.zoom);
+                ctx.translate(-this.camera.x, -this.camera.y);
+                if (isCont) {
+                    ctx.globalAlpha = 0.4;
+                    let rY = 500;
+                    let gradient = ctx.createLinearGradient(0, rY - 100, 0, rY + 100);
+                    ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#8f00ff'].forEach((c, i) =>
+                        gradient.addColorStop(i * 0.15, c));
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.ellipse(4000, rY, 2000, 300, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                }
+                if (this.gameState === 'BOSS') {
+                    ctx.fillStyle = '#151515';
+                    ctx.fillRect(-5000, this.GROUND_Y, 10000, 2000);
+                    ctx.fillStyle = '#55ff55';
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#55ff55';
+                    ctx.fillRect(-5000, this.GROUND_Y, 10000, 4);
+                    ctx.shadowBlur = 0;
+                } else {
+                    for (let pl of [...this.platforms, ...this.movingPlatforms]) {
+                        if (isSky) {
+                            ctx.fillStyle = '#fdfdfd';
+                            ctx.shadowColor = '#ffe68f';
+                            ctx.shadowBlur = 15;
+                            this.safeRoundRect(ctx, pl.x, pl.y, pl.w, pl.h, 8);
+                            ctx.fill();
+                            ctx.fillStyle = '#e0c070';
+                            ctx.fillRect(pl.x, pl.y + pl.h - 4, pl.w, 4);
+                        } else if (isCont) {
+                            ctx.fillStyle = '#6a5e4e';
+                            ctx.shadowColor = '#888888';
+                            ctx.shadowBlur = 10;
+                            ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
+                            ctx.fillStyle = '#3a2e1e';
+                            ctx.fillRect(pl.x, pl.y, pl.w, 5);
+                            ctx.fillRect(pl.x, pl.y + pl.h - 5, pl.w, 5);
+                            ctx.fillStyle = '#4a3e2e';
+                            for (let i = 0; i < pl.w; i += 40) ctx.fillRect(pl.x + i, pl.y + 8, 15, pl.h - 16);
+                        } else {
+                            let hue = (this.currentLevelIdx * 30 + (pl.type === 'ground' ? 200 : 180)) % 360;
+                            ctx.fillStyle = `hsl(${hue},50%,25%)`;
+                            ctx.shadowColor = `hsl(${hue},80%,70%)`;
+                            ctx.shadowBlur = 15;
+                            this.safeRoundRect(ctx, pl.x, pl.y, pl.w, pl.h, 4);
+                            ctx.fill();
+                            ctx.fillStyle = `hsl(${hue},70%,60%)`;
+                            ctx.fillRect(pl.x, pl.y, pl.w, 4);
+                        }
+                    }
+                    ctx.shadowBlur = 0;
+                    let g = this.levels[this.currentLevelIdx].goal;
+                    ctx.fillStyle = '#ccc';
+                    ctx.fillRect(g.x + 16, g.y, 4, g.h);
+                    ctx.fillStyle = '#fcd34d';
+                    ctx.beginPath();
+                    ctx.moveTo(g.x + 20, g.y + 10);
+                    ctx.lineTo(g.x + 60, g.y + 25);
+                    ctx.lineTo(g.x + 20, g.y + 40);
+                    ctx.fill();
+                    if (this.levelComplete) { ctx.fillStyle = '#fff5b0';
+                        ctx.shadowBlur = 30;
+                        ctx.beginPath();
+                        ctx.arc(g.x + 40, g.y - 20, 30, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.shadowBlur = 0; }
+                }
+                if (this.gameState === 'BOSS') {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#00ffff';
+                    ctx.fillStyle = '#ccffff';
+                    for (let c of this.boss.crystals) {
+                        let cx = this.boss.x + this.boss.w / 2 + Math.cos(c.angle) * 110;
+                        let cy = this.boss.y + this.boss.h / 2 + Math.sin(c.angle) * 40 + Math.sin(now * 0.005 + c
+                            .angle) * 10;
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy - 20);
+                        ctx.lineTo(cx + 8, cy);
+                        ctx.lineTo(cx, cy + 20);
+                        ctx.lineTo(cx - 8, cy);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    ctx.shadowBlur = 0;
+                    if (!this.victory || (this.victory && this.boss.animTimer % 10 < 5)) {
+                        let bx = this.boss.x,
+                            by = this.boss.y,
+                            bw = this.boss.w,
+                            bh = this.boss.h,
+                            d = this.boss.d;
+                        ctx.shadowBlur = (this.boss.state === 'stunned') ? 10 : 20;
+                        ctx.shadowColor = (this.victory) ? this.SOLVED_COLOR : (this.boss.state === 'charge' ?
+                            '#ff0000' : '#aa00ff');
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = '#000';
+                        let stepW = bw / 3,
+                            stepD = d / 3;
+                        for (let r = 0; r < 3; r++) {
+                            for (let c = 0; c < 3; c++) {
+                                let p0 = { x: bx + c * stepW + r * stepD, y: by - r * stepD };
+                                let p1 = { x: bx + (c + 1) * stepW + r * stepD, y: by - r * stepD };
+                                let p2 = { x: bx + (c + 1) * stepW + (r + 1) * stepD, y: by - (r + 1) * stepD };
+                                let p3 = { x: bx + c * stepW + (r + 1) * stepD, y: by - (r + 1) * stepD };
+                                let seg = this.boss.segments[9 + r * 3 + c];
+                                let color = (this.victory || seg.solved) ? this.SOLVED_COLOR : seg.color;
+                                if (this.boss.state === 'charge') color = '#ff4444';
+                                this.drawPoly(ctx, [p0, p1, p2, p3], color);
+                            }
+                        }
+                        let stepH = bh / 3;
+                        for (let r = 0; r < 3; r++) {
+                            for (let c = 0; c < 3; c++) {
+                                let p0 = { x: bx + bw + c * stepD, y: by + r * stepH - c * stepD };
+                                let p1 = { x: bx + bw + (c + 1) * stepD, y: by + r * stepH - (c + 1) * stepD };
+                                let p2 = { x: bx + bw + (c + 1) * stepD, y: by + (r + 1) * stepH - (c + 1) * stepD };
+                                let p3 = { x: bx + bw + c * stepD, y: by + (r + 1) * stepH - c * stepD };
+                                let seg = this.boss.segments[18 + r * 3 + c];
+                                let color = (this.victory || seg.solved) ? this.SOLVED_COLOR : seg.color;
+                                if (this.boss.state === 'charge') color = '#cc0000';
+                                this.drawPoly(ctx, [p0, p1, p2, p3], color);
+                            }
+                        }
+                        for (let r = 0; r < 3; r++) {
+                            for (let c = 0; c < 3; c++) {
+                                let seg = this.boss.segments[r * 3 + c];
+                                ctx.fillStyle = (this.victory || seg.solved) ? this.SOLVED_COLOR : seg.color;
+                                if (this.boss.state === 'charge') ctx.fillStyle = '#ff0000';
+                                ctx.fillRect(bx + c * stepW, by + r * stepH, stepW, stepH);
+                                ctx.strokeRect(bx + c * stepW, by + r * stepH, stepW, stepH);
+                            }
+                        }
+                        ctx.shadowBlur = 0;
+                    }
+                    for (let p of this.projectiles) { ctx.fillStyle = p.color;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        ctx.fill(); }
+                    ctx.shadowBlur = 0;
+                }
+                for (let p of this.particles) { ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
+                    ctx.fill(); }
+                ctx.globalAlpha = 1.0;
+                if (!this.dead && (this.player.invulnerable === 0 || Math.floor(now / 100) % 2 === 0)) {
+                    if (this.player.dashCooldown > 45) { ctx.globalAlpha = 0.5;
+                        ctx.fillStyle = '#ffaa00';
+                        ctx.fillRect(this.player.x - (this.player.facingRight ? 20 : -20), this.player.y, this.player
+                            .w, this.player.h);
+                        ctx.globalAlpha = 1.0; }
+                    if (!this.player.grounded && !this.player.doubleJumpUsed) { ctx.globalAlpha = 0.2;
+                        ctx.shadowBlur = 30;
+                        ctx.fillStyle = '#aaccff';
+                        ctx.fillRect(this.player.x - 8, this.player.y - 2, this.player.w + 16, this.player.h + 4);
+                        ctx.globalAlpha = 1.0; }
+                    ctx.shadowColor = '#ffd966';
+                    ctx.shadowBlur = 25;
+                    ctx.fillStyle = '#f5cb8b';
+                    ctx.fillRect(this.player.x, this.player.y, this.player.w, this.player.h);
+                    ctx.fillStyle = '#b5d8ff';
+                    ctx.fillRect(this.player.x + (this.player.facingRight ? 6 : 2), this.player.y - 5, 24, 10);
+                    ctx.fillStyle = '#28241c';
+                    ctx.fillRect(this.player.x + (this.player.facingRight ? 12 : 8), this.player.y + 8, 5, 5);
+                    ctx.fillRect(this.player.x + (this.player.facingRight ? 22 : 18), this.player.y + 8, 5, 5);
+                    if (this.player.vy < -2) { ctx.fillStyle = '#ff9933';
+                        ctx.fillRect(this.player.x + this.player.w, this.player.y + 16, 12, 8);
+                        ctx.fillRect(this.player.x - 12, this.player.y + 16, 12, 8); }
+                    ctx.shadowBlur = 0;
+                }
+                ctx.restore();
+                if (this.gameState === 'PLAYING' && this.currentLevelIdx <= 2 && !this.levelComplete) {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + 0.3 * Math.sin(now * 0.003)})`;
+                    ctx.font = 'bold 24px ' + getComputedStyle(document.body).fontFamily;
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = '#000';
+                    ctx.shadowBlur = 10;
+                    let t = [getText('tutMove'), getText('tutDouble'), getText('tutDash')][this.currentLevelIdx];
+                    if (t) ctx.fillText(t, canvasWidth / 2, canvasHeight * 0.25);
+                    ctx.shadowBlur = 0;
+                    ctx.textAlign = 'left';
+                }
+                if (this.dead) {
+                    this.deathFlashAlpha = Math.min(1, this.deathFlashAlpha);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                    ctx.fillStyle = 'rgba(20, 0, 0, 0.5)';
+                    for (let i = 0; i < canvasHeight; i += 4) ctx.fillRect(0, i, canvasWidth, 2);
+                    const text = getText('died');
+                    ctx.font = 'bold 6vw ' + getComputedStyle(document.body).getPropertyValue('--font-retro');
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    let flicker = Math.random() > 0.1;
+                    let wobbleX = Math.sin(now * 0.05) * 3,
+                        wobbleY = Math.cos(now * 0.05) * 3;
+                    let cX = canvasWidth / 2 + wobbleX,
+                        cY = canvasHeight / 2 + wobbleY;
+                    if (flicker) {
+                        ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
+                        ctx.fillText(text, cX - 5, cY);
+                        ctx.fillStyle = 'rgba(255, 255, 0, 0.7)';
+                        ctx.fillText(text, cX + 5, cY);
+                        ctx.fillStyle = '#ff1111';
+                        ctx.shadowColor = '#ff5555';
+                        ctx.shadowBlur = 20;
+                        ctx.fillText(text, cX, cY);
+                        ctx.shadowBlur = 0;
+                    } else { ctx.fillStyle = '#ee0000';
+                        ctx.fillText(text, cX, cY); }
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'alphabetic';
+                }
+            }
+        };
+
+        // ============================================================================
+        // GALACTIC MAKER ENGINE
+        // ============================================================================
+        const Maker = {
+            TILE_SIZE: 48,
+            COLS: 150,
+            ROWS: 40,
+            WORLD_W: 150 * 48,
+            WORLD_H: 40 * 48,
+            PLAYER_W: 32,
+            PLAYER_H: 40,
+            GRAVITY: 0.5,
+            JUMP_FORCE: -12.5,
+            GROUND_SPEED: 6,
+            AIR_SPEED: 3,
+            GROUND_FRICTION: 0.75,
+            AIR_RESISTANCE: 0.92,
+
+            grid: [],
+            mode: 'EDIT',
+            currentTool: 1,
+            isDrawing: false,
+            camera: { x: 0, y: 0 },
+            CAM_SPEED: 15,
+            currentBiome: 'nebula',
+
+            player: { x: 0, y: 0, vx: 0, vy: 0, w: 32, h: 40, grounded: false, doubleJumpUsed: false,
+                dashCooldown: 0, dashUsed: false, facingRight: true, dead: false, won: false, ridingPlatform: null },
+            enemies: [],
+            jumpPads: [],
+            spikes: [],
+            particles: [],
+
+            BIOMES: {
+                nebula: { bgTop: '#1a1030', bgBot: '#0a0a1a', block: '#2a3454', topBlock: '#7aaaff', starHue: 280 },
+                obsidian: { bgTop: '#220505', bgBot: '#0a0000', block: '#331111', topBlock: '#ff4444', starHue: 0 },
+                toxic: { bgTop: '#0a1a10', bgBot: '#050a05', block: '#113322', topBlock: '#55ff55', starHue: 120 }
+            },
+
+            initGrid() {
+                this.grid = Array(this.ROWS).fill().map(() => Array(this.COLS).fill(0));
+                for (let r = 0; r < this.ROWS; r++) { this.grid[r][0] = 1;
+                    this.grid[r][this.COLS - 1] = 1; }
+                let startRow = Math.floor(this.ROWS / 2);
+                for (let c = 2; c <= 8; c++) { this.grid[startRow][c] = 1; }
+            },
+
+            spawnParticle(x, y, vx, vy, color, life, size) {
+                this.particles.push({ x, y, vx, vy, color, life, maxLife: life, size });
+            },
+
+            getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                let worldX = clientX - rect.left + this.camera.x;
+                let worldY = clientY - rect.top + this.camera.y;
+                return { x: Math.floor(worldX / this.TILE_SIZE), y: Math.floor(worldY / this.TILE_SIZE) };
+            },
+
+            paintTile(e) {
+                if (this.mode !== 'EDIT' || !this.isDrawing) return;
+                const pos = this.getMousePos(e);
+                if (pos.x > 0 && pos.x < this.COLS - 1 && pos.y >= 0 && pos.y < this.ROWS) {
+                    if (this.currentTool === 2 || this.currentTool === 3) {
+                        for (let r = 0; r < this.ROWS; r++)
+                            for (let c = 0; c < this.COLS; c++) { if (this.grid[r][c] === this.currentTool) this.grid[
+                                    r][c] = 0; }
+                    }
+                    this.grid[pos.y][pos.x] = this.currentTool;
+                }
+            },
+
+            startPlayMode() {
+                let spawnFound = false;
+                this.enemies = [];
+                this.jumpPads = [];
+                this.spikes = [];
+                this.particles = [];
+                for (let r = 0; r < this.ROWS; r++) {
+                    for (let c = 0; c < this.COLS; c++) {
+                        let tile = this.grid[r][c];
+                        let px = c * this.TILE_SIZE,
+                            py = r * this.TILE_SIZE;
+                        if (tile === 2) {
+                            this.player.x = px + (this.TILE_SIZE - this.player.w) / 2;
+                            this.player.y = py + (this.TILE_SIZE - this.player.h);
+                            this.player.vx = 0;
+                            this.player.vy = 0;
+                            this.player.dead = false;
+                            this.player.won = false;
+                            spawnFound = true;
+                        } else if (tile === 4) this.enemies.push({ x: px + 4, y: py + this.TILE_SIZE - 28, w: this
+                                .TILE_SIZE - 8, h: 28, vx: 2, dead: false });
+                        else if (tile === 5) this.jumpPads.push({ x: px, y: py + this.TILE_SIZE - 12, w: this
+                                .TILE_SIZE, h: 12 });
+                        else if (tile === 6) this.spikes.push({ x: px, y: py + this.TILE_SIZE - 24, w: this.TILE_SIZE,
+                            h: 24 });
+                    }
+                }
+                if (!spawnFound) {
+                    showMakerModal('warning', getText('mkNoSpawnTitle'), getText('mkNoSpawnMsg'));
+                    this.resetToEditMode();
+                    return;
+                }
+                document.getElementById('maker-status-msg').style.display = 'none';
+                document.getElementById('maker-camera-hint').style.display = 'none';
+                this.mode = 'PLAY';
+                document.getElementById('btn-maker-play').classList.add('playing');
+                document.getElementById('maker-play-text').innerText = getText('mkEdit');
+            },
+
+            resetToEditMode() {
+                document.getElementById('btn-maker-play').classList.remove('playing');
+                document.getElementById('maker-play-text').innerText = getText('mkPlay');
+                document.getElementById('maker-status-msg').style.display = 'none';
+                document.getElementById('maker-camera-hint').style.display = 'block';
+                this.mode = 'EDIT';
+            },
+
+            checkCollision(ent, dx, dy) {
+                let newX = ent.x + dx,
+                    newY = ent.y + dy;
+                let r1 = Math.floor(newY / this.TILE_SIZE),
+                    r2 = Math.floor((newY + ent.h - 0.1) / this.TILE_SIZE);
+                let c1 = Math.floor(newX / this.TILE_SIZE),
+                    c2 = Math.floor((newX + ent.w - 0.1) / this.TILE_SIZE);
+                if (c1 < 0 || c2 >= this.COLS) return true;
+                if (r1 < 0 || r2 >= this.ROWS) return false;
+                for (let r = r1; r <= r2; r++) {
+                    for (let c = c1; c <= c2; c++) {
+                        if (this.grid[r][c] === 1) return true;
+                        if (ent === this.player && this.grid[r][c] === 3) this.player.won = true;
+                    }
+                }
+                return false;
+            },
+
+            update() {
+                if (this.mode === 'EDIT') {
+                    if (Input.left) this.camera.x -= this.CAM_SPEED;
+                    if (Input.right) this.camera.x += this.CAM_SPEED;
+                    if (Input.up) this.camera.y -= this.CAM_SPEED;
+                    if (Input.down) this.camera.y += this.CAM_SPEED;
+                    this.camera.x = Math.max(0, Math.min(this.camera.x, this.WORLD_W - canvasWidth));
+                    this.camera.y = Math.max(0, Math.min(this.camera.y, this.WORLD_H - canvasHeight));
+                    return;
+                }
+                if (this.player.dead || this.player.won) return;
+                if (this.player.dashCooldown > 0) this.player.dashCooldown--;
+                if (Input.left) this.player.facingRight = false;
+                if (Input.right) this.player.facingRight = true;
+                if (Input.dash && !this.player.dashUsed && this.player.dashCooldown <= 0) {
+                    this.player.vx = this.player.facingRight ? 20 : -20;
+                    this.player.vy = 0;
+                    this.player.dashCooldown = 60;
+                    this.player.dashUsed = true;
+                    SoundSynth.playDash(); // SOM DE DASH NO MAKER
+                    for (let i = 0; i < 10; i++) this.spawnParticle(this.player.x + this.player.w / 2, this.player.y +
+                        this.player.h / 2, -this.player.vx * 0.2 + (Math.random() * 2 - 1), Math.random() * 4 - 2,
+                        '#ffaa00', 15, 4);
+                }
+                if (!Input.dash) this.player.dashUsed = false;
+                if (this.player.grounded) {
+                    if (Input.left) this.player.vx -= this.GROUND_SPEED * 0.45;
+                    if (Input.right) this.player.vx += this.GROUND_SPEED * 0.45;
+                    this.player.vx *= this.GROUND_FRICTION;
+                } else {
+                    if (Input.left) this.player.vx -= this.AIR_SPEED * 0.18;
+                    if (Input.right) this.player.vx += this.AIR_SPEED * 0.18;
+                    this.player.vx *= this.AIR_RESISTANCE;
+                }
+                if (!this.checkCollision(this.player, this.player.vx, 0)) { this.player.x += this.player.vx; } else { this
+                        .player.vx = 0; }
+                if (Input.upPressed) {
+                    if (this.player.grounded) {
+                        this.player.vy = this.JUMP_FORCE;
+                        this.player.grounded = false;
+                        this.player.doubleJumpUsed = false;
+                        SoundSynth.playJump(); // SOM DE PULO NO MAKER
+                    } else if (!this.player.doubleJumpUsed) {
+                        this.player.vy = this.JUMP_FORCE;
+                        this.player.doubleJumpUsed = true;
+                        SoundSynth.playDoubleJump(); // SOM DE PULO DUPLO NO MAKER
+                        for (let i = 0; i < 15; i++) this.spawnParticle(this.player.x + this.player.w / 2, this.player.y +
+                            this.player.h, (Math.random() * 4 - 2), Math.random() * 3, '#aaccff', 15, Math.random() * 5 + 2);
+                    }
+                    Input.upPressed = false;
+                }
+                if (this.player.ridingPlatform) this.player.x += this.player.ridingPlatform.vx;
+                this.player.vy += this.GRAVITY;
+                this.player.grounded = false;
+                if (!this.checkCollision(this.player, 0, this.player.vy)) { this.player.y += this.player.vy; } else { if (
+                        this.player.vy > 0) this.player.grounded = true;
+                    this.player.vy = 0;
+                    this.player.y = Math.round(this.player.y); }
+                if (this.player.grounded) this.player.doubleJumpUsed = false;
+                for (let pad of this.jumpPads) {
+                    if (this.player.vy > 0 && this.player.x < pad.x + pad.w && this.player.x + this.player.w > pad.x &&
+                        this.player.y + this.player.h > pad.y && this.player.y < pad.y + pad.h) {
+                        this.player.vy = this.JUMP_FORCE * 1.6;
+                        this.player.grounded = false;
+                    }
+                }
+                for (let s of this.spikes) { if (this.player.x < s.x + s.w && this.player.x + this.player.w > s.x && this
+                        .player.y < s.y + s.h && this.player.y + this.player.h > s.y) this.player.dead = true; }
+                for (let e of this.enemies) {
+                    let dir = e.vx > 0 ? e.w : 0;
+                    let checkC = Math.floor((e.x + dir + e.vx) / this.TILE_SIZE);
+                    let checkR = Math.floor((e.y + e.h + 2) / this.TILE_SIZE);
+                    let hasFloor = (checkC >= 0 && checkC < this.COLS && checkR < this.ROWS) ? this.grid[checkR][
+                        checkC
+                    ] === 1 : false;
+                    if (!this.checkCollision(e, e.vx, 0) && hasFloor) { e.x += e.vx; } else { e.vx *= -1; }
+                    if (this.player.x < e.x + e.w && this.player.x + this.player.w > e.x && this.player.y < e.y + e.h &&
+                        this.player.y + this.player.h > e.y) {
+                        if (this.player.vy > 0 && this.player.y + this.player.h - this.player.vy <= e.y + 15) {
+                            this.player.vy = this.JUMP_FORCE * 0.8;
+                            e.dead = true;
+                            for (let i = 0; i < 15; i++) this.spawnParticle(e.x + e.w / 2, e.y + e.h / 2, (Math.random() *
+                                6 - 3), (Math.random() * 6 - 3), '#ff3333', 20, 4);
+                        } else { this.player.dead = true; }
+                    }
+                }
+                this.enemies = this.enemies.filter(e => !e.dead);
+                if (this.player.y > this.WORLD_H + 200) this.player.dead = true;
+                // Som de dano ao morrer no Maker
+                if (this.player.dead) {
+                    SoundSynth.playHit();
+                }
+                for (let i = this.particles.length - 1; i >= 0; i--) { let p = this.particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--; if (p.life <= 0) this.particles.splice(i, 1); }
+                let targetCamX = Math.max(0, Math.min(this.player.x + this.player.w / 2 - canvasWidth / 2, this.WORLD_W -
+                    canvasWidth));
+                let targetCamY = Math.max(0, Math.min(this.player.y + this.player.h / 2 - canvasHeight / 2, this.WORLD_H -
+                    canvasHeight));
+                this.camera.x += (targetCamX - this.camera.x) * 0.1;
+                this.camera.y += (targetCamY - this.camera.y) * 0.1;
+                const msgBox = document.getElementById('maker-status-msg');
+                if (this.player.won) { msgBox.innerText = getText('mkComplete');
+                    msgBox.style.display = 'block';
+                    SoundSynth.playGoal(); // SOM DE OBJETIVO NO MAKER
+                } else if (this.player.dead) { msgBox.innerText = getText('mkDied');
+                    msgBox.style.display = 'block'; }
+            },
+
+            draw() {
+                let b = this.BIOMES[this.currentBiome];
+                let grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+                grad.addColorStop(0, b.bgTop);
+                grad.addColorStop(1, b.bgBot);
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                ctx.save();
+                ctx.translate(-this.camera.x, -this.camera.y);
+                if (this.mode === 'EDIT') {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                    ctx.lineWidth = 1;
+                    let startC = Math.floor(this.camera.x / this.TILE_SIZE),
+                        endC = startC + Math.ceil(canvasWidth / this.TILE_SIZE);
+                    let startR = Math.floor(this.camera.y / this.TILE_SIZE),
+                        endR = startR + Math.ceil(canvasHeight / this.TILE_SIZE);
+                    for (let x = startC * this.TILE_SIZE; x <= endC * this.TILE_SIZE; x += this.TILE_SIZE) { ctx
+                    .beginPath();
+                        ctx.moveTo(x, this.camera.y);
+                        ctx.lineTo(x, this.camera.y + canvasHeight);
+                        ctx.stroke(); }
+                    for (let y = startR * this.TILE_SIZE; y <= endR * this.TILE_SIZE; y += this.TILE_SIZE) { ctx
+                    .beginPath();
+                        ctx.moveTo(this.camera.x, y);
+                        ctx.lineTo(this.camera.x + canvasWidth, y);
+                        ctx.stroke(); }
+                }
+                let r1 = Math.max(0, Math.floor(this.camera.y / this.TILE_SIZE)),
+                    r2 = Math.min(this.ROWS - 1, Math.floor((this.camera.y + canvasHeight) / this.TILE_SIZE));
+                let c1 = Math.max(0, Math.floor(this.camera.x / this.TILE_SIZE)),
+                    c2 = Math.min(this.COLS - 1, Math.floor((this.camera.x + canvasWidth) / this.TILE_SIZE));
+                for (let r = r1; r <= r2; r++) {
+                    for (let c = c1; c <= c2; c++) {
+                        let tile = this.grid[r][c];
+                        if (tile === 0) continue;
+                        let px = c * this.TILE_SIZE,
+                            py = r * this.TILE_SIZE;
+                        if (tile === 1) { ctx.fillStyle = b.block;
+                            ctx.fillRect(px, py, this.TILE_SIZE, this.TILE_SIZE);
+                            ctx.fillStyle = b.topBlock;
+                            ctx.fillRect(px, py, this.TILE_SIZE, 8); } else if (tile === 3) { ctx.fillStyle = '#ccc';
+                            ctx.fillRect(px + 18, py, 4, this.TILE_SIZE);
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.beginPath();
+                            ctx.moveTo(px + 22, py + 5);
+                            ctx.lineTo(px + 40, py + 15);
+                            ctx.lineTo(px + 22, py + 25);
+                            ctx.fill(); } else if (this.mode === 'EDIT') {
+                            if (tile === 2) { ctx.globalAlpha = 0.6;
+                                ctx.fillStyle = '#f5cb8b';
+                                ctx.fillRect(px + (this.TILE_SIZE - this.PLAYER_W) / 2, py + (this.TILE_SIZE - this
+                                    .PLAYER_H), this.PLAYER_W, this.PLAYER_H);
+                                ctx.globalAlpha = 1.0; } else if (tile === 4) { ctx.fillStyle =
+                                'rgba(255, 51, 51, 0.6)';
+                                ctx.beginPath();
+                                ctx.roundRect(px + 4, py + this.TILE_SIZE - 28, this.TILE_SIZE - 8, 28, 6);
+                                ctx.fill(); } else if (tile === 5) { ctx.fillStyle = 'rgba(255, 0, 255, 0.6)';
+                                ctx.fillRect(px, py + this.TILE_SIZE - 12, this.TILE_SIZE, 12); } else if (tile ===
+                                6) { ctx.fillStyle = 'rgba(221, 221, 221, 0.6)';
+                                ctx.beginPath();
+                                ctx.moveTo(px, py + this.TILE_SIZE);
+                                ctx.lineTo(px + this.TILE_SIZE / 2, py + this.TILE_SIZE - 24);
+                                ctx.lineTo(px + this.TILE_SIZE, py + this.TILE_SIZE);
+                                ctx.fill(); }
+                        }
+                    }
+                }
+                if (this.mode === 'PLAY') {
+                    for (let s of this.spikes) { ctx.fillStyle = '#ddd';
+                        ctx.beginPath();
+                        ctx.moveTo(s.x, s.y + s.h);
+                        ctx.lineTo(s.x + s.w / 2, s.y);
+                        ctx.lineTo(s.x + s.w, s.y + s.h);
+                        ctx.fill(); }
+                    for (let pad of this.jumpPads) { ctx.fillStyle = '#ff00ff';
+                        ctx.fillRect(pad.x, pad.y, pad.w, pad.h); }
+                    for (let e of this.enemies) { ctx.fillStyle = '#ff3333';
+                        ctx.beginPath();
+                        ctx.roundRect(e.x, e.y, e.w, e.h, 6);
+                        ctx.fill();
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(e.x + 6, e.y + 8, 6, 6);
+                        ctx.fillRect(e.x + 20, e.y + 8, 6, 6); }
+                    for (let p of this.particles) { ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
+                        ctx.fill(); }
+                    ctx.globalAlpha = 1.0;
+                    if (!this.player.dead) {
+                        if (this.player.dashCooldown > 45) { ctx.globalAlpha = 0.5;
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.fillRect(this.player.x - (this.player.facingRight ? 20 : -20), this.player.y, this
+                                .player.w, this.player.h);
+                            ctx.globalAlpha = 1.0; }
+                        ctx.fillStyle = '#f5cb8b';
+                        ctx.fillRect(this.player.x, this.player.y, this.player.w, this.player.h);
+                        ctx.fillStyle = '#b5d8ff';
+                        ctx.fillRect(this.player.x + (this.player.facingRight ? 6 : 2), this.player.y - 5, 24, 10);
+                        ctx.fillStyle = '#28241c';
+                        ctx.fillRect(this.player.x + (this.player.facingRight ? 12 : 8), this.player.y + 8, 5, 5);
+                        ctx.fillRect(this.player.x + (this.player.facingRight ? 22 : 18), this.player.y + 8, 5, 5);
+                    }
+                }
+                ctx.restore();
+            }
+        };
+
+        // ============================================================================
+        // MAKER MODAL
+        // ============================================================================
+        function showMakerModal(type, title, message, onConfirm = null) {
+            const overlay = document.getElementById('maker-modal-overlay');
+            const box = document.getElementById('maker-modal-box');
+            const icon = document.getElementById('maker-modal-icon');
+            const titleEl = document.getElementById('maker-modal-title');
+            const textEl = document.getElementById('maker-modal-text');
+            const btnArea = document.getElementById('maker-modal-buttons');
+
+            overlay.style.display = 'flex';
+            setTimeout(() => box.classList.add('show'), 10);
+            titleEl.innerText = title;
+            textEl.innerText = message;
+            btnArea.innerHTML = '';
+            if (type === 'warning') {
+                icon.innerText = '🧍';
+                const btn = document.createElement('button');
+                btn.className = 'maker-modal-btn maker-modal-btn-primary';
+                btn.innerText = getText('mkOk');
+                btn.onclick = closeMakerModal;
+                btnArea.appendChild(btn);
+            } else if (type === 'danger') {
+                icon.innerText = '🗑️';
+                const btnCancel = document.createElement('button');
+                btnCancel.className = 'maker-modal-btn maker-modal-btn-cancel';
+                btnCancel.innerText = getText('mkCancel');
+                btnCancel.onclick = closeMakerModal;
+                const btnConfirm = document.createElement('button');
+                btnConfirm.className = 'maker-modal-btn maker-modal-btn-danger';
+                btnConfirm.innerText = getText('mkConfirm');
+                btnConfirm.onclick = () => { if (onConfirm) onConfirm();
+                    closeMakerModal(); };
+                btnArea.appendChild(btnCancel);
+                btnArea.appendChild(btnConfirm);
+            }
+        }
+
+        function closeMakerModal() {
+            const overlay = document.getElementById('maker-modal-overlay');
+            const box = document.getElementById('maker-modal-box');
+            box.classList.remove('show');
+            setTimeout(() => overlay.style.display = 'none', 300);
+        }
+
+        // ============================================================================
+        // CRÉDITOS
+        // ============================================================================
+        function triggerCredits() {
+            appState = 'CREDITS';
+            const cOverlay = document.getElementById('credits-overlay');
+            const tDiv = cOverlay.querySelector('.credits-text');
+            tDiv.style.animation = 'none';
+            tDiv.offsetHeight;
+            tDiv.style.animation = null;
+            cOverlay.classList.add('show');
+            setTimeout(() => {
+                cOverlay.classList.remove('show');
+                appState = 'MENU';
+                document.getElementById('menu-overlay').classList.remove('hidden');
+                updateMenuUI();
+            }, 25000);
+        }
+
+        // ============================================================================
+        // UI UPDATE
+        // ============================================================================
+        function updateMenuUI() {
+            const savedLevel = Realms.savedLevel;
+            const bossUnlocked = Realms.bossUnlocked;
+            if (savedLevel > 0) document.getElementById('continue-btn').style.display = 'block';
+            else document.getElementById('continue-btn').style.display = 'none';
+            if (bossUnlocked || savedLevel >= Realms.BOSS_LEVEL_INDEX) document.getElementById('boss-btn').classList
+                .remove('locked');
+            else document.getElementById('boss-btn').classList.add('locked');
+
+            document.getElementById('t-newGame').innerText = getText('newGame');
+            document.getElementById('t-continue').innerText = getText('continue');
+            document.getElementById('t-boss').innerText = getText('boss');
+            document.getElementById('t-maker').innerText = getText('maker');
+            document.getElementById('t-settings').innerText = getText('settings');
+            document.getElementById('t-back').innerText = getText('back');
+            document.getElementById('t-exit').innerText = getText('exit');
+            document.getElementById('t-subtitle').innerText = getText('subtitle');
+            document.getElementById('c-thx').innerText = getText('thx');
+            document.getElementById('c-dev').innerText = getText('dev');
+            document.getElementById('c-end').innerText = getText('end');
+            document.getElementById('boss-puzzle-name').innerText = getText('bossName');
+        }
+
+        function enterMakerMode() {
+            appState = 'MAKER';
+            document.getElementById('menu-overlay').classList.add('hidden');
+            document.getElementById('settings-overlay').classList.add('hidden');
+            document.getElementById('boss-hud').style.display = 'none';
+            document.getElementById('ui-overlay').style.display = 'flex';
+            document.getElementById('maker-toolbar').style.display = 'flex';
+            document.getElementById('maker-camera-hint').style.display = 'block';
+            document.getElementById('maker-status-msg').style.display = 'none';
+            document.getElementById('btn-maker-lobby').style.display = 'flex';
+            document.getElementById('reset-button').style.display = 'none';
+            document.getElementById('level-message').innerText = '🛠️ Galactic Maker';
+            document.getElementById('maker-play-text').innerText = getText('mkPlay');
+            document.getElementById('btn-maker-play').classList.remove('playing');
+            Maker.resetToEditMode();
+            Maker.camera.x = 0;
+            Maker.camera.y = 0;
+        }
+
+        function exitMakerMode() {
+            appState = 'MENU';
+            document.getElementById('maker-toolbar').style.display = 'none';
+            document.getElementById('maker-camera-hint').style.display = 'none';
+            document.getElementById('maker-status-msg').style.display = 'none';
+            document.getElementById('btn-maker-lobby').style.display = 'none';
+            document.getElementById('reset-button').style.display = 'flex';
+            document.getElementById('menu-overlay').classList.remove('hidden');
+            document.getElementById('boss-hud').style.display = 'none';
+            document.getElementById('level-message').innerText = 'Galactic Lobby';
+            updateMenuUI();
+        }
+
+        // ============================================================================
+        // MAIN GAME LOOP
+        // ============================================================================
+        let lastTime = performance.now();
+        let accumulator = 0;
+        const FIXED_TIME_STEP = 1000 / 60;
+
+        function mainLoop(timestamp) {
+            requestAnimationFrame(mainLoop);
+            let now = timestamp || performance.now();
+            let dt = now - lastTime;
+            if (dt > 250) dt = 250;
+            accumulator += dt;
+            lastTime = now;
+
+            if (appState === 'MENU' || appState === 'CREDITS') {
+                ctx.fillStyle = '#0a0c1a';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < 100; i++) {
+                    ctx.globalAlpha = 0.5 + Math.sin(now * 0.002 + i) * 0.5;
+                    ctx.fillRect((i * 137) % canvasWidth, (i * 93) % canvasHeight, 2, 2);
+                }
+                ctx.globalAlpha = 1.0;
+                accumulator = 0;
+            } else if (appState === 'MAKER') {
+                while (accumulator >= FIXED_TIME_STEP) {
+                    Maker.update();
+                    accumulator -= FIXED_TIME_STEP;
+                }
+                Maker.draw();
+            } else if (appState === 'PLAYING' || appState === 'BOSS') {
+                while (accumulator >= FIXED_TIME_STEP) {
+                    Realms.update();
+                    accumulator -= FIXED_TIME_STEP;
+                }
+                Realms.draw(now);
+            }
+        }
+
+        // ============================================================================
+        // EVENT LISTENERS
+        // ============================================================================
+        document.getElementById('continue-btn').addEventListener('click', () => {
+            document.getElementById('menu-overlay').classList.add('hidden');
+            document.getElementById('maker-toolbar').style.display = 'none';
+            document.getElementById('maker-camera-hint').style.display = 'none';
+            document.getElementById('maker-status-msg').style.display = 'none';
+            document.getElementById('btn-maker-lobby').style.display = 'none';
+            document.getElementById('reset-button').style.display = 'flex';
+            Realms.initLevel(Realms.savedLevel);
+            appState = Realms.gameState === 'BOSS' ? 'BOSS' : 'PLAYING';
+        });
+        document.getElementById('play-btn').addEventListener('click', () => {
+            Realms.savedLevel = 0;
+            try { localStorage.setItem('galactic_save_pc', 0); } catch (e) {}
+            document.getElementById('menu-overlay').classList.add('hidden');
+            document.getElementById('maker-toolbar').style.display = 'none';
+            document.getElementById('maker-camera-hint').style.display = 'none';
+            document.getElementById('maker-status-msg').style.display = 'none';
+            document.getElementById('btn-maker-lobby').style.display = 'none';
+            document.getElementById('reset-button').style.display = 'flex';
+            Realms.initLevel(0);
+            appState = 'PLAYING';
+        });
+        document.getElementById('boss-btn').addEventListener('click', () => {
+            if (!document.getElementById('boss-btn').classList.contains('locked')) {
+                document.getElementById('menu-overlay').classList.add('hidden');
+                document.getElementById('maker-toolbar').style.display = 'none';
+                document.getElementById('maker-camera-hint').style.display = 'none';
+                document.getElementById('maker-status-msg').style.display = 'none';
+                document.getElementById('btn-maker-lobby').style.display = 'none';
+                document.getElementById('reset-button').style.display = 'flex';
+                Realms.initLevel(Realms.BOSS_LEVEL_INDEX);
+                appState = 'BOSS';
+            }
+        });
+        document.getElementById('maker-btn').addEventListener('click', () => {
+            enterMakerMode();
+        });
+        document.getElementById('btn-maker-lobby').addEventListener('click', () => {
+            exitMakerMode();
+        });
+
+        document.getElementById('btn-settings').addEventListener('click', () => document.getElementById(
+            'settings-overlay').classList.remove('hidden'));
+        document.getElementById('lobby-settings-btn').addEventListener('click', () => document.getElementById(
+            'settings-overlay').classList.remove('hidden'));
+        document.getElementById('close-settings-btn').addEventListener('click', () => document.getElementById(
+            'settings-overlay').classList.add('hidden'));
+        document.getElementById('exit-game-btn').addEventListener('click', () => {
+            if (appState === 'MAKER') exitMakerMode();
+            else {
+                appState = 'MENU';
+                document.getElementById('settings-overlay').classList.add('hidden');
+                document.getElementById('menu-overlay').classList.remove('hidden');
+                updateMenuUI();
+            }
+        });
+        document.getElementById('reset-button').addEventListener('click', () => {
+            if (appState === 'PLAYING' || appState === 'BOSS') Realms.initLevel(Realms.currentLevelIdx);
+        });
+        document.getElementById('btn-fullscreen').addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e => {});
+            else if (document.exitFullscreen) document.exitFullscreen();
+        });
+
+        document.getElementById('lang-select').addEventListener('change', (e) => {
+            currentLang = e.target.value;
+            updateMenuUI();
+            if (appState === 'PLAYING') document.getElementById('level-message').innerText =
+                `🌌 ${Realms.levels[Realms.currentLevelIdx].name}  ·  Lvl ${Realms.currentLevelIdx+1}/${Realms.TOTAL_NORMAL_LEVELS}`;
+            if (appState === 'MAKER') {
+                document.getElementById('level-message').innerText = '🛠️ Galactic Maker';
+                document.getElementById('maker-play-text').innerText = Maker.mode === 'PLAY' ? getText('mkEdit') :
+                    getText('mkPlay');
+                document.getElementById('btn-maker-clear').innerText = getText('mkClear');
+                document.getElementById('maker-camera-hint').innerText = getText('mkHint');
+                document.getElementById('biome-select').options[0].innerText = getText('mkBiomeNebula');
+                document.getElementById('biome-select').options[1].innerText = getText('mkBiomeObsidian');
+                document.getElementById('biome-select').options[2].innerText = getText('mkBiomeToxic');
+            }
+        });
+        document.getElementById('fov-slider').addEventListener('input', (e) => userFovMultiplier = parseFloat(e.target
+            .value));
+
+        // MAKER CONTROLS
+        document.querySelectorAll('#maker-palette .tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#maker-palette .tool-btn').forEach(b => b.classList.remove(
+                    'active'));
+                btn.classList.add('active');
+                Maker.currentTool = parseInt(btn.dataset.tool);
+            });
+        });
+        document.getElementById('btn-maker-play').addEventListener('click', () => {
+            if (Maker.mode === 'EDIT') Maker.startPlayMode();
+            else Maker.resetToEditMode();
+        });
+        document.getElementById('biome-select').addEventListener('change', (e) => Maker.currentBiome = e.target.value);
+        document.getElementById('btn-maker-clear').addEventListener('click', () => {
+            showMakerModal('danger', getText('mkClearTitle'), getText('mkClearMsg'), () => Maker.initGrid());
+        });
+
+        canvas.addEventListener('mousedown', e => { if (appState === 'MAKER') { Maker.isDrawing = true;
+                Maker.paintTile(e); } });
+        canvas.addEventListener('mousemove', e => { if (appState === 'MAKER') Maker.paintTile(e); });
+        window.addEventListener('mouseup', () => { if (appState === 'MAKER') Maker.isDrawing = false; });
+
+        // ============================================================================
+        // INIT
+        // ============================================================================
+        SoundSynth.init(); // Inicializa o sintetizador de áudio
+        Realms.init();
+        Maker.initGrid();
+        updateMenuUI();
+        lastTime = performance.now();
+        requestAnimationFrame(mainLoop);
+    </script>
+</body>
+</html>
